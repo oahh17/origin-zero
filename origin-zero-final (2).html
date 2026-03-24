@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin Zero</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg: #030303;
+  --bg1: rgba(8,8,8,0.90);
+  --bg2: rgba(14,14,14,0.88);
+  --bg3: rgba(20,20,20,0.7);
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.16);
+  --text: #f0f0f0;
+  --text2: #888;
+  --text3: #444;
+  --text4: #222;
+  --accent: #ffffff;
+  --accent2: #aaa;
+  --accent-dim: rgba(255,255,255,0.06);
+  --red: #ff5a36;
+  --red-dim: rgba(255,90,54,0.1);
+  --blue: #bbb;
+  --blue-dim: rgba(200,200,200,0.06);
+  --amber: #ccc;
+  --amber-dim: rgba(200,200,200,0.06);
+  --purple: #aaa;
+  --purple-dim: rgba(180,180,180,0.06);
+  --nebula1: rgba(255,255,255,0.012);
+  --nebula2: rgba(255,255,255,0.008);
+}
+body.color-mode {
+  --bg: #03030a;
+  --bg1: rgba(8,8,20,0.85);
+  --bg2: rgba(12,12,28,0.8);
+  --bg3: rgba(20,20,45,0.6);
+  --border: rgba(120,120,255,0.12);
+  --border2: rgba(120,120,255,0.22);
+  --text: #e8e8f4;
+  --text2: #9090b8;
+  --text3: #4a4a70;
+  --text4: #252540;
+  --accent: #c8f03a;
+  --accent2: #7c6fff;
+  --accent-dim: rgba(200,240,58,0.08);
+  --red: #ff5a36;
+  --red-dim: rgba(255,90,54,0.1);
+  --blue: #4a9eff;
+  --blue-dim: rgba(74,158,255,0.1);
+  --amber: #f0a827;
+  --amber-dim: rgba(240,168,39,0.1);
+  --purple: #7c6fff;
+  --purple-dim: rgba(124,111,255,0.1);
+  --nebula1: rgba(124,111,255,0.04);
+  --nebula2: rgba(200,240,58,0.03);
+}
+.mode-toggle{display:flex;align-items:center;gap:7px;cursor:pointer;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;user-select:none;}
+.toggle-track{width:30px;height:16px;background:var(--text4);border-radius:8px;position:relative;transition:background 0.3s;border:0.5px solid var(--border2);}
+.toggle-track.on{background:rgba(200,240,58,0.25);}
+.toggle-thumb{width:12px;height:12px;background:var(--text2);border-radius:50%;position:absolute;top:2px;left:2px;transition:transform 0.2s,background 0.2s;}
+.toggle-track.on .toggle-thumb{transform:translateX(14px);background:#c8f03a;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;overflow-x:hidden}
+
+/* ── SPACE BACKGROUND ── */
+#space-canvas{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  z-index:0;pointer-events:none;
+}
+.nebula{
+  position:fixed;border-radius:50%;filter:blur(80px);
+  pointer-events:none;z-index:0;
+}
+.nebula-1{
+  width:600px;height:400px;
+  background:radial-gradient(ellipse,rgba(255,255,255,0.04) 0%,transparent 70%);
+  top:-100px;right:-100px;
+  animation:nebula-drift 20s ease-in-out infinite alternate;
+}
+.nebula-2{
+  width:500px;height:500px;
+  background:radial-gradient(ellipse,rgba(255,255,255,0.03) 0%,transparent 70%);
+  bottom:-150px;left:-100px;
+  animation:nebula-drift 25s ease-in-out infinite alternate-reverse;
+}
+.nebula-3{
+  width:400px;height:300px;
+  background:radial-gradient(ellipse,rgba(255,255,255,0.025) 0%,transparent 70%);
+  top:40%;left:30%;
+  animation:nebula-drift 30s ease-in-out infinite alternate;
+}
+@keyframes nebula-drift{
+  0%{transform:translate(0,0) scale(1)}
+  100%{transform:translate(30px,20px) scale(1.05)}
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Barlow',sans-serif;
+  font-weight:400;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  position:relative;z-index:1;
+}
+
+/* ── NAV ── */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+  border-bottom:0.5px solid var(--border);
+  position:sticky;top:0;
+  background:rgba(3,3,10,0.88);
+  backdrop-filter:blur(20px);
+  z-index:100;
+}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-emblem{
+  width:44px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  animation:emblem-pulse 4s ease-in-out infinite;
+}
+@keyframes emblem-pulse{0%,100%{opacity:0.7}50%{opacity:1}}
+.nav-brand{font-family:'Bebas Neue',cursive;font-size:24px;letter-spacing:6px;text-transform:uppercase;color:var(--text);line-height:1}
+.nav-sub{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-top:3px;font-style:italic}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{
+  padding:7px 18px;
+  font-family:'Bebas Neue',cursive;
+  font-size:15px;letter-spacing:2px;text-transform:uppercase;
+  border:0.5px solid transparent;border-radius:20px;
+  cursor:pointer;color:var(--text3);background:transparent;
+  transition:all 0.2s;
+}
+.nav-tab:hover{color:var(--text2);border-color:var(--border)}
+.nav-tab.active{
+  color:var(--accent);border-color:rgba(200,240,58,0.3);
+  background:var(--accent-dim);
+  text-shadow:0 0 10px rgba(200,240,58,0.4);
+}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-status{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--text4);transition:all 0.3s}
+.status-dot.live{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── PAGES ── */
+.page{display:none;padding:28px;max-width:1100px;margin:0 auto;width:100%}
+.page.active{display:block;animation:fadein 0.3s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── GLASS CARDS ── */
+.card{
+  background:var(--bg1);
+  border:0.5px solid var(--border);
+  border-radius:16px;
+  padding:20px 22px;
+  backdrop-filter:blur(12px);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(124,111,255,0.15),transparent);
+  pointer-events:none;
+}
+.card-label{
+  font-family:'Bebas Neue',cursive;
+  font-size:14px;letter-spacing:3px;
+  color:var(--text3);text-transform:uppercase;
+  margin-bottom:14px;
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.gap{margin-bottom:14px}
+
+/* ── METRICS ── */
+.metric{
+  background:var(--bg2);
+  border:0.5px solid var(--border);
+  border-radius:12px;padding:14px 16px;
+  backdrop-filter:blur(8px);
+}
+.metric-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+.metric-val{font-family:'Bebas Neue',cursive;font-size:28px;line-height:1;letter-spacing:1px}
+.metric-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-top:5px}
+.up{color:var(--accent)}
+.dn{color:var(--red)}
+.neutral{color:var(--text2)}
+.purple{color:var(--purple)}
+
+/* ── INPUTS ── */
+input,textarea,select{
+  background:rgba(8,8,25,0.7);
+  border:0.5px solid var(--border2);
+  border-radius:10px;
+  padding:10px 13px;
+  font-family:'DM Mono',monospace;
+  font-size:11px;color:var(--text);
+  outline:none;transition:all 0.2s;width:100%;
+  backdrop-filter:blur(8px);
+}
+input:focus,textarea:focus,select:focus{
+  border-color:rgba(200,240,58,0.4);
+  box-shadow:0 0 0 3px rgba(200,240,58,0.06);
+}
+input::placeholder,textarea::placeholder{color:var(--text4)}
+select option{background:#0a0a1e}
+
+.btn{
+  background:var(--accent);color:#030308;
+  border:none;border-radius:10px;
+  padding:10px 20px;
+  font-family:'Bebas Neue',cursive;
+  font-size:16px;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;white-space:nowrap;
+  transition:all 0.15s;
+  box-shadow:0 0 16px rgba(200,240,58,0.2);
+}
+.btn:hover{background:#d4f55a;box-shadow:0 0 24px rgba(200,240,58,0.35)}
+.btn-ghost{
+  background:rgba(255,255,255,0.03);
+  color:var(--text3);
+  border:0.5px solid var(--border);
+  border-radius:10px;padding:10px 14px;
+  font-family:'DM Mono',monospace;
+  font-size:10px;cursor:pointer;white-space:nowrap;
+  transition:all 0.2s;backdrop-filter:blur(8px);
+}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text2);background:rgba(255,255,255,0.05)}
+.row{display:flex;gap:8px;align-items:center}
+.flex1{flex:1}
+.divider{height:0.5px;background:var(--border);margin:14px 0}
+
+/* ── BADGES ── */
+.badge{
+  display:inline-block;padding:2px 9px;
+  border-radius:20px;
+  font-family:'DM Mono',monospace;
+  font-size:8px;letter-spacing:1px;
+}
+.badge-green{background:var(--accent-dim);color:var(--accent)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-gray{background:rgba(255,255,255,0.05);color:var(--text3)}
+.badge-amber{background:var(--amber-dim);color:var(--amber)}
+.badge-blue{background:var(--blue-dim);color:var(--blue)}
+.badge-purple{background:var(--purple-dim);color:var(--purple)}
+
+.error{font-family:'DM Mono',monospace;font-size:10px;color:var(--red);margin-top:6px;min-height:16px}
+.hint{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-top:6px;line-height:1.7}
+.loading{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-align:center;padding:16px 0}
+
+/* ── MARKET ── */
+.ticker-row{
+  display:flex;align-items:center;
+  padding:11px 0;border-bottom:0.5px solid rgba(120,120,255,0.06);gap:12px;
+}
+.ticker-row:last-child{border-bottom:none}
+.ticker-sym{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;min-width:64px}
+.ticker-price{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);min-width:90px;text-align:right}
+.ticker-chg{font-family:'DM Mono',monospace;font-size:11px;min-width:72px;text-align:right}
+.ticker-rm{background:transparent;border:none;color:var(--text4);font-size:16px;cursor:pointer;padding:0 4px;transition:color 0.15s}
+.ticker-rm:hover{color:var(--red)}
+.news-item{padding:12px 0;border-bottom:0.5px solid rgba(120,120,255,0.06);cursor:pointer;transition:all 0.15s}
+.news-item:last-child{border-bottom:none}
+.news-item:hover .news-headline{color:var(--text)}
+.news-headline{font-size:13px;color:#9090b8;line-height:1.45;margin-bottom:5px;transition:color 0.15s}
+.news-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)}
+
+/* ── DEBT ── */
+.progress-bar{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;margin-top:7px}
+.progress-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
+.table{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:11px}
+.table th{color:var(--text3);font-weight:400;padding:7px 8px;text-align:left;border-bottom:0.5px solid var(--border)}
+.table td{padding:9px 8px;border-bottom:0.5px solid rgba(120,120,255,0.05);color:var(--text2)}
+.table tr:last-child td{border-bottom:none}
+
+/* ── JOURNAL ── */
+.journal-entry{
+  background:var(--bg2);
+  border:0.5px solid var(--border);
+  border-radius:12px;padding:14px 16px;
+  margin-bottom:10px;backdrop-filter:blur(8px);
+  transition:border-color 0.2s;
+}
+.journal-entry:hover{border-color:var(--border2)}
+.journal-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.journal-text{font-size:13px;color:#b0b0d0;line-height:1.7;white-space:pre-wrap}
+.journal-rm{background:transparent;border:none;color:var(--text4);cursor:pointer;font-size:13px;transition:color 0.15s}
+.journal-rm:hover{color:var(--red)}
+.mood-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.mood-btn{
+  padding:5px 12px;border-radius:20px;
+  font-family:'DM Mono',monospace;font-size:9px;
+  border:0.5px solid var(--border);
+  background:transparent;color:var(--text3);
+  cursor:pointer;transition:all 0.15s;
+}
+.mood-btn.selected{
+  border-color:rgba(200,240,58,0.4);
+  background:var(--accent-dim);color:var(--accent);
+}
+
+/* ── GOALS ── */
+.goal-row{margin-bottom:18px}
+.goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.goal-name{font-size:13px;font-weight:500;color:var(--text)}
+.goal-pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)}
+input[type=range]{accent-color:var(--accent);padding:0;background:transparent}
+
+/* ── OZ SCORE ── */
+.oz-score-ring{
+  position:relative;display:flex;
+  align-items:center;justify-content:center;
+  width:140px;height:140px;margin:0 auto 16px;
+}
+.oz-score-num{
+  font-family:'Bebas Neue',cursive;
+  font-size:46px;color:var(--accent);
+  text-shadow:0 0 20px rgba(200,240,58,0.4);
+  letter-spacing:2px;
+  position:absolute;
+}
+
+/* ── FOOTER ── */
+.oz-footer{
+  margin-top:auto;padding:16px 28px;
+  border-top:0.5px solid rgba(255,255,255,0.12);
+  font-family:'Bebas Neue',cursive;
+  font-size:15px;color:rgba(255,255,255,0.55);
+  letter-spacing:3px;
+  display:flex;justify-content:space-between;
+  background:rgba(3,3,10,0.75);
+  backdrop-filter:blur(12px);
+}
+
+/* ── FIREBASE BANNER ── */
+.firebase-banner{
+  background:var(--bg1);border:0.5px solid var(--border2);
+  border-radius:16px;padding:22px 24px;margin-bottom:20px;
+  backdrop-filter:blur(12px);
+}
+.fb-step{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.fb-step:last-child{margin-bottom:0}
+.fb-num{font-family:'Bebas Neue',cursive;font-size:28px;color:var(--accent);min-width:24px;line-height:1}
+.fb-body{flex:1}
+.fb-title{font-family:'Bebas Neue',cursive;font-size:14px;letter-spacing:2px;color:var(--text);margin-bottom:4px}
+.fb-desc{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);line-height:1.8}
+.fb-desc a{color:var(--accent);text-decoration:none}
+.fb-code{background:#030308;border:0.5px solid var(--border);border-radius:6px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:9px;color:#888;margin-top:8px;line-height:1.8;white-space:pre;overflow-x:auto}
+.sync-indicator{display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text4)}
+.sync-dot.syncing{background:#f0a827;animation:pulse 1s infinite}
+.sync-dot.synced{background:#4caf50}
+.sync-dot.error{background:var(--red)}
+
+/* ── API BANNER ── */
+.api-banner{
+  background:var(--bg1);
+  border:0.5px solid var(--border2);
+  border-radius:16px;padding:20px 22px;
+  margin-bottom:16px;backdrop-filter:blur(12px);
+}
+
+/* ── COORD DISPLAY ── */
+.coord{
+  font-family:'DM Mono',monospace;
+  font-size:8px;color:var(--text4);
+  letter-spacing:1px;
+}
+</style>
+</head>
+<body>
+
+<!-- SPACE CANVAS -->
+<canvas id="space-canvas"></canvas>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<div class="nebula nebula-3"></div>
+
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="nav-emblem" style="background:transparent;border:none;box-shadow:none;animation:none;width:44px;height:36px;display:flex;align-items:center;justify-content:center;">
+      <svg width="44" height="32" viewBox="0 0 44 32" fill="none">
+        <circle cx="16" cy="16" r="9.5" stroke="var(--text)" stroke-width="2"/>
+        <line x1="22" y1="7" x2="36" y2="7" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="36" y1="7" x2="22" y2="25" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="22" y1="25" x2="36" y2="25" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="nav-brand">Origin Zero</div>
+      <div class="nav-sub">from nothing — to something</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('market',this)">Market</button>
+    <button class="nav-tab" onclick="showPage('debt',this)">Debt</button>
+    <button class="nav-tab" onclick="showPage('journal',this)">Journal</button>
+    <button class="nav-tab" onclick="showPage('goals',this)">Goals</button>
+    <button class="nav-tab" onclick="showPage('figure',this)">Origin</button>
+  </div>
+  <div class="nav-right">
+    <label class="mode-toggle" onclick="toggleColorMode()">
+      <div class="toggle-track" id="mode-track"><div class="toggle-thumb"></div></div>
+      <span id="mode-label">MONO</span>
+    </label>
+    <div class="nav-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">offline</span>
+      <span class="sync-indicator" id="sync-indicator" style="display:none"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">sync</span></span>
+      <span id="last-update" style="color:var(--text4);margin-left:6px;font-size:8px"></span>
+    </div>
+  </div>
+</nav>
+
+
+
+<!-- ── GLASSES COLLECTION — right side ── -->
+<div id="glasses-widget" style="position:fixed;right:18px;top:0;bottom:0;z-index:2;pointer-events:none;display:flex;flex-direction:column;justify-content:space-around;padding:60px 0 60px;align-items:center;width:90px">
+  <style>
+    @keyframes star-blink-a{0%,100%{opacity:0.05}45%{opacity:0.95}55%{opacity:0.95}85%{opacity:0.2}}
+    @keyframes star-blink-b{0%,100%{opacity:0.05}30%{opacity:0.8}50%{opacity:0.8}75%{opacity:0.1}}
+    @keyframes star-blink-c{0%,100%{opacity:0.08}50%{opacity:1}70%{opacity:0.9}90%{opacity:0.15}}
+    @keyframes star-blink-d{0%,100%{opacity:0.04}20%{opacity:0.7}40%{opacity:0.7}65%{opacity:0.05}}
+    @keyframes star-blink-e{0%,100%{opacity:0.06}60%{opacity:0.85}80%{opacity:0.85}}
+    @keyframes glasses-float-a{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-5px) rotate(1deg)}}
+    @keyframes glasses-float-b{0%,100%{transform:translateY(0) rotate(1deg)}50%{transform:translateY(-7px) rotate(-2deg)}}
+    @keyframes glasses-float-c{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-4px) rotate(2deg)}}
+    @keyframes glasses-float-d{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-6px) rotate(-1deg)}}
+    @keyframes glasses-float-e{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-5px) rotate(1.5deg)}}
+    .g-a{animation:glasses-float-a 6s ease-in-out infinite}
+    .g-b{animation:glasses-float-b 7.5s ease-in-out infinite}
+    .g-c{animation:glasses-float-c 5.5s ease-in-out infinite}
+    .g-d{animation:glasses-float-d 8s ease-in-out infinite}
+    .g-e{animation:glasses-float-e 6.5s ease-in-out infinite}
+    .gs-a{animation:star-blink-a 4s ease-in-out infinite}
+    .gs-b{animation:star-blink-b 5.5s ease-in-out infinite 1s}
+    .gs-c{animation:star-blink-c 3.8s ease-in-out infinite 0.5s}
+    .gs-d{animation:star-blink-d 6s ease-in-out infinite 2s}
+    .gs-e{animation:star-blink-e 4.5s ease-in-out infinite 0.8s}
+  </style>
+
+  <!-- 1. Classic round — star in right lens -->
+  <svg class="g-a" width="72" height="36" viewBox="0 0 72 36" opacity="0.18">
+    <circle cx="18" cy="19" r="11" fill="none" stroke="white" stroke-width="1.4"/>
+    <circle cx="54" cy="19" r="11" fill="none" stroke="white" stroke-width="1.4"/>
+    <line x1="29" y1="19" x2="43" y2="19" stroke="white" stroke-width="1.4"/>
+    <line x1="7" y1="15" x2="1" y2="13" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="65" y1="15" x2="71" y2="13" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+    <g class="gs-a">
+      <line x1="54" y1="12" x2="54" y2="26" stroke="white" stroke-width="0.9"/>
+      <line x1="47" y1="19" x2="61" y2="19" stroke="white" stroke-width="0.9"/>
+      <line x1="49" y1="14" x2="59" y2="24" stroke="white" stroke-width="0.6"/>
+      <line x1="59" y1="14" x2="49" y2="24" stroke="white" stroke-width="0.6"/>
+    </g>
+  </svg>
+
+  <!-- 2. Rectangular aviator style — star in left lens -->
+  <svg class="g-b" width="76" height="32" viewBox="0 0 76 32" opacity="0.14">
+    <rect x="2" y="8" width="28" height="18" rx="4" fill="none" stroke="white" stroke-width="1.3"/>
+    <rect x="46" y="8" width="28" height="18" rx="4" fill="none" stroke="white" stroke-width="1.3"/>
+    <line x1="30" y1="17" x2="46" y2="17" stroke="white" stroke-width="1.3"/>
+    <line x1="2" y1="14" x2="0" y2="11" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <line x1="74" y1="14" x2="76" y2="11" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <g class="gs-b">
+      <line x1="16" y1="11" x2="16" y2="23" stroke="white" stroke-width="0.9"/>
+      <line x1="10" y1="17" x2="22" y2="17" stroke="white" stroke-width="0.9"/>
+      <line x1="11" y1="12" x2="21" y2="22" stroke="white" stroke-width="0.6"/>
+      <line x1="21" y1="12" x2="11" y2="22" stroke="white" stroke-width="0.6"/>
+    </g>
+  </svg>
+
+  <!-- 3. Cat-eye — star in right lens -->
+  <svg class="g-c" width="78" height="34" viewBox="0 0 78 34" opacity="0.16">
+    <path d="M4,22 Q6,8 20,8 Q32,8 34,22 Q28,26 4,22 Z" fill="none" stroke="white" stroke-width="1.3"/>
+    <path d="M44,22 Q46,8 60,8 Q72,8 74,22 Q68,26 44,22 Z" fill="none" stroke="white" stroke-width="1.3"/>
+    <line x1="34" y1="17" x2="44" y2="17" stroke="white" stroke-width="1.3"/>
+    <line x1="4" y1="20" x2="1" y2="18" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <line x1="74" y1="20" x2="77" y2="18" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <g class="gs-c">
+      <line x1="59" y1="12" x2="59" y2="22" stroke="white" stroke-width="0.9"/>
+      <line x1="53" y1="17" x2="65" y2="17" stroke="white" stroke-width="0.9"/>
+      <line x1="54" y1="13" x2="64" y2="21" stroke="white" stroke-width="0.6"/>
+      <line x1="64" y1="13" x2="54" y2="21" stroke="white" stroke-width="0.6"/>
+    </g>
+  </svg>
+
+  <!-- 4. Hexagonal — star in left lens -->
+  <svg class="g-d" width="74" height="36" viewBox="0 0 74 36" opacity="0.13">
+    <polygon points="16,6 26,6 32,18 26,30 16,30 10,18" fill="none" stroke="white" stroke-width="1.3"/>
+    <polygon points="48,6 58,6 64,18 58,30 48,30 42,18" fill="none" stroke="white" stroke-width="1.3"/>
+    <line x1="32" y1="18" x2="42" y2="18" stroke="white" stroke-width="1.3"/>
+    <line x1="10" y1="15" x2="5" y2="13" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <line x1="64" y1="15" x2="69" y2="13" stroke="white" stroke-width="1" stroke-linecap="round"/>
+    <g class="gs-d">
+      <line x1="21" y1="12" x2="21" y2="25" stroke="white" stroke-width="0.9"/>
+      <line x1="14" y1="18" x2="28" y2="18" stroke="white" stroke-width="0.9"/>
+      <line x1="15" y1="13" x2="27" y2="23" stroke="white" stroke-width="0.6"/>
+      <line x1="27" y1="13" x2="15" y2="23" stroke="white" stroke-width="0.6"/>
+    </g>
+  </svg>
+
+  <!-- 5. Oversized round — star in right lens -->
+  <svg class="g-e" width="80" height="40" viewBox="0 0 80 40" opacity="0.15">
+    <circle cx="20" cy="22" r="14" fill="none" stroke="white" stroke-width="1.4"/>
+    <circle cx="60" cy="22" r="14" fill="none" stroke="white" stroke-width="1.4"/>
+    <line x1="34" y1="22" x2="46" y2="22" stroke="white" stroke-width="1.4"/>
+    <line x1="6" y1="17" x2="1" y2="14" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+    <line x1="74" y1="17" x2="79" y2="14" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+    <g class="gs-e">
+      <line x1="60" y1="12" x2="60" y2="32" stroke="white" stroke-width="1"/>
+      <line x1="50" y1="22" x2="70" y2="22" stroke="white" stroke-width="1"/>
+      <line x1="53" y1="15" x2="67" y2="29" stroke="white" stroke-width="0.7"/>
+      <line x1="67" y1="15" x2="53" y2="29" stroke="white" stroke-width="0.7"/>
+    </g>
+  </svg>
+
+</div>
+
+<!-- ═══════════════ FIREBASE SETUP (shown until connected) ═══════════════ -->
+<div id="firebase-setup" style="padding:28px;max-width:700px;margin:0 auto;width:100%">
+  <div class="firebase-banner">
+    <div class="card-label" style="margin-bottom:16px">Connect Cloud Sync — Cross-Device Storage</div>
+
+    <div class="fb-step">
+      <div class="fb-num">1</div>
+      <div class="fb-body">
+        <div class="fb-title">Create Firebase Project</div>
+        <div class="fb-desc">Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Add project → name it <b>origin-zero</b> → disable analytics → create</div>
+      </div>
+    </div>
+
+    <div class="fb-step">
+      <div class="fb-num">2</div>
+      <div class="fb-body">
+        <div class="fb-title">Enable Firestore</div>
+        <div class="fb-desc">In your project → Firestore Database → Create database → Start in <b>test mode</b> → choose a region → Done</div>
+      </div>
+    </div>
+
+    <div class="fb-step">
+      <div class="fb-num">3</div>
+      <div class="fb-body">
+        <div class="fb-title">Get Your Config Keys</div>
+        <div class="fb-desc">Project Settings (gear icon) → General → Your apps → Web (&lt;/&gt;) → Register → copy the firebaseConfig object</div>
+        <div class="fb-code">const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "origin-zero.firebaseapp.com",
+  projectId: "origin-zero",
+  ...
+};</div>
+      </div>
+    </div>
+
+    <div class="fb-step">
+      <div class="fb-num">4</div>
+      <div class="fb-body">
+        <div class="fb-title">Paste Your Config Below</div>
+        <div class="fb-desc">Paste the entire firebaseConfig object — just the JSON part inside the curly braces</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+          <textarea id="fb-config-input" rows="7" style="font-family:'DM Mono',monospace;font-size:10px;resize:vertical" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "origin-zero.firebaseapp.com",
+  "projectId": "origin-zero",
+  "storageBucket": "origin-zero.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123..."
+}'></textarea>
+          <div class="row">
+            <button class="btn" onclick="connectFirebase()" style="flex:1">Connect & Sync</button>
+            <button class="btn-ghost" onclick="skipFirebase()">Skip — use local only</button>
+          </div>
+          <div class="error" id="fb-error"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);line-height:1.8">
+        FREE FOREVER for personal use · 50k reads/day · 20k writes/day · syncs phone ↔ laptop ↔ any device
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MARKET ═══════════════ -->
+<div class="page active" id="page-market">
+
+  <div class="api-banner" id="api-banner">
+    <div class="card-label">Connect Live Market Data</div>
+    <div class="row">
+      <input id="api-key-input" type="password" placeholder="paste finnhub api key — free at finnhub.io/register" class="flex1" />
+      <button class="btn" onclick="connectAPI()">Connect</button>
+    </div>
+    <div class="hint">free at finnhub.io/register · no credit card · saves automatically</div>
+    <div class="error" id="api-error"></div>
+  </div>
+
+  <div class="grid3 gap" id="market-overview" style="display:none">
+    <div class="metric">
+      <div class="metric-label">S&P 500 (SPY)</div>
+      <div class="metric-val" id="spy-price">—</div>
+      <div class="metric-sub" id="spy-chg">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">NASDAQ (QQQ)</div>
+      <div class="metric-val" id="qqq-price">—</div>
+      <div class="metric-sub" id="qqq-chg">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Bitcoin</div>
+      <div class="metric-val" id="btc-price">—</div>
+      <div class="metric-sub" id="btc-chg">—</div>
+    </div>
+  </div>
+
+  <div class="grid2 gap">
+    <div class="card">
+      <div class="card-label">Watchlist</div>
+      <div id="ticker-list"><div class="loading">connect api to load live prices</div></div>
+      <div class="divider"></div>
+      <div class="row">
+        <input id="add-ticker-input" placeholder="add ticker (AAPL, TSLA, ETH...)" class="flex1" style="text-transform:uppercase" maxlength="12" onkeydown="if(event.key==='Enter')addTicker()" />
+        <button class="btn-ghost" onclick="addTicker()">Add</button>
+        <button class="btn-ghost" onclick="refreshMarket()">↻</button>
+      </div>
+      <div class="error" id="ticker-error"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label" style="display:flex;justify-content:space-between">
+        <span>Market News</span>
+        <span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--text4)" id="news-time"></span>
+      </div>
+      <div id="news-list"><div class="loading">connect api to load headlines</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Portfolio Tracker</div>
+    <div class="grid4 gap">
+      <div class="metric"><div class="metric-label">Total Value</div><div class="metric-val neutral" id="port-total">$0</div></div>
+      <div class="metric"><div class="metric-label">Cost Basis</div><div class="metric-val neutral" id="port-cost">$0</div></div>
+      <div class="metric"><div class="metric-label">Unrealized P&L</div><div class="metric-val" id="port-pnl">$0</div></div>
+      <div class="metric"><div class="metric-label">Return</div><div class="metric-val" id="port-pct">0%</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <input id="pb-sym" placeholder="Ticker" style="width:80px" />
+      <input id="pb-shares" placeholder="Shares" type="number" style="width:80px" />
+      <input id="pb-cost" placeholder="Avg cost" type="number" style="width:100px" />
+      <button class="btn" onclick="addPosition()">Add Position</button>
+    </div>
+    <div id="positions-table" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ DEBT ═══════════════ -->
+<div class="page" id="page-debt">
+  <div class="grid3 gap">
+    <div class="metric"><div class="metric-label">Total Remaining</div><div class="metric-val dn" id="debt-total">$0</div></div>
+    <div class="metric"><div class="metric-label">Paid Off</div><div class="metric-val up" id="debt-paid">$0</div></div>
+    <div class="metric"><div class="metric-label">Overall Progress</div><div class="metric-val purple" id="debt-pct">0%</div></div>
+  </div>
+
+  <div class="grid2 gap">
+    <div class="card">
+      <div class="card-label">Add Debt</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input id="debt-name" placeholder="Name (e.g. Car Loan, Credit Card)" />
+        <div class="row">
+          <input id="debt-balance" placeholder="Current balance $" type="number" class="flex1" />
+          <input id="debt-rate" placeholder="APR %" type="number" style="width:90px" />
+        </div>
+        <div class="row">
+          <input id="debt-min" placeholder="Min payment $/mo" type="number" class="flex1" />
+        </div>
+        <button class="btn" onclick="addDebt()">Add Debt</button>
+        <div class="error" id="debt-error"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Payoff Calculator</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="row">
+          <span style="font-size:12px;color:var(--text2);min-width:140px">Monthly budget</span>
+          <input id="monthly-budget" placeholder="$" type="number" class="flex1" oninput="calcPayoff()" />
+        </div>
+        <div class="row">
+          <span style="font-size:12px;color:var(--text2);min-width:140px">Strategy</span>
+          <select id="debt-method" onchange="calcPayoff()" style="flex:1">
+            <option value="avalanche">Avalanche (highest rate first)</option>
+            <option value="snowball">Snowball (lowest balance first)</option>
+          </select>
+        </div>
+        <div class="divider"></div>
+        <div id="payoff-result"><div class="loading">enter monthly budget to calculate</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card gap">
+    <div class="card-label">Your Debts</div>
+    <div id="debt-list"><div class="loading">no debts yet — add one above</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ JOURNAL ═══════════════ -->
+<div class="page" id="page-journal">
+  <div class="grid2 gap" style="align-items:start">
+    <div>
+      <div class="card gap">
+        <div class="card-label">New Entry</div>
+        <div class="mood-row">
+          <button class="mood-btn" onclick="selectMood(this,'focused')">focused</button>
+          <button class="mood-btn" onclick="selectMood(this,'motivated')">motivated</button>
+          <button class="mood-btn" onclick="selectMood(this,'tired')">tired</button>
+          <button class="mood-btn" onclick="selectMood(this,'frustrated')">frustrated</button>
+          <button class="mood-btn" onclick="selectMood(this,'locked in')">locked in</button>
+          <button class="mood-btn" onclick="selectMood(this,'grind')">grind</button>
+        </div>
+        <select id="journal-tag" style="margin-bottom:8px">
+          <option value="">tag this entry...</option>
+          <option value="trade">trade log</option>
+          <option value="school">school</option>
+          <option value="personal">personal</option>
+          <option value="business">business / oz</option>
+          <option value="reflection">reflection</option>
+          <option value="goal">goal update</option>
+          <option value="finance">finance</option>
+        </select>
+        <textarea id="journal-input" rows="7" placeholder="write anything — what happened today, trade ideas, how you're thinking, what you're building..."></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn flex1" onclick="saveEntry()">Save Entry</button>
+          <button class="btn-ghost" onclick="document.getElementById('journal-input').value=''">Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Writing Stats</div>
+        <div class="grid3">
+          <div class="metric"><div class="metric-label">Total</div><div class="metric-val neutral" id="j-total">0</div></div>
+          <div class="metric"><div class="metric-label">Streak</div><div class="metric-val up" id="j-streak">0d</div></div>
+          <div class="metric"><div class="metric-label">This Month</div><div class="metric-val neutral" id="j-month">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="max-height:80vh;overflow-y:auto">
+      <div class="card-label" style="display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(8,8,20,0.95);padding-bottom:8px;margin-bottom:0;backdrop-filter:blur(8px)">
+        <span>Entries</span>
+        <select id="journal-filter" onchange="renderJournal()" style="width:140px;font-size:9px;padding:5px 8px">
+          <option value="">all</option>
+          <option value="trade">trade log</option>
+          <option value="school">school</option>
+          <option value="personal">personal</option>
+          <option value="business">business / oz</option>
+          <option value="reflection">reflection</option>
+          <option value="goal">goal update</option>
+          <option value="finance">finance</option>
+        </select>
+      </div>
+      <div id="journal-entries" style="margin-top:12px"><div class="loading">no entries yet</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ GOALS ═══════════════ -->
+<div class="page" id="page-goals">
+  <div class="grid2 gap" style="align-items:start">
+    <div class="card">
+      <div class="card-label">2026 Goals</div>
+      <div id="goals-list"></div>
+      <div class="divider"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input id="goal-input" placeholder="new goal..." onkeydown="if(event.key==='Enter')addGoal()" />
+        <div class="row">
+          <select id="goal-category" style="flex:1">
+            <option value="finance">finance</option>
+            <option value="school">school</option>
+            <option value="career">career</option>
+            <option value="health">health</option>
+            <option value="personal">personal</option>
+            <option value="business">business</option>
+          </select>
+          <button class="btn" onclick="addGoal()">Add Goal</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card gap">
+        <div class="card-label">Origin Zero Score</div>
+        <div style="text-align:center;padding:24px 0 16px">
+          <div class="oz-score-ring">
+            <svg width="140" height="140" viewBox="0 0 140 140" style="position:absolute;top:0;left:0">
+              <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(120,120,255,0.08)" stroke-width="6"/>
+              <circle id="score-ring" cx="70" cy="70" r="58" fill="none" stroke="#c8f03a" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="364.4"
+                transform="rotate(-90 70 70)" style="transition:stroke-dashoffset 0.8s ease;filter:drop-shadow(0 0 8px rgba(200,240,58,0.4))"/>
+            </svg>
+            <div class="oz-score-num" id="oz-score">0%</div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:6px">overall progress</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.5" id="oz-message">set your goals and start moving</div>
+        </div>
+        <div class="divider"></div>
+        <div class="grid2">
+          <div class="metric"><div class="metric-label">Goals Set</div><div class="metric-val neutral" id="goals-count">0</div></div>
+          <div class="metric"><div class="metric-label">Complete</div><div class="metric-val up" id="goals-done">0</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Coordinates</div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+          <div class="coord" id="coord-date">DATE ——</div>
+          <div class="coord" id="coord-journal">JOURNAL ENTRIES ——</div>
+          <div class="coord" id="coord-debt">DEBT REMAINING ——</div>
+          <div class="coord" id="coord-goals">GOALS ACTIVE ——</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ FIGURE / ORIGIN PAGE ═══════════════ -->
+<div class="page" id="page-figure">
+  <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+
+    <!-- LEFT: figure canvas -->
+    <div style="flex:1;min-width:300px;display:flex;flex-direction:column;align-items:center;gap:16px">
+      <div class="card" style="width:100%;text-align:center;padding:32px 20px 24px">
+        <div class="card-label" style="text-align:left">Origin Zero — The Figure</div>
+        <canvas id="figure-canvas" width="360" height="480" style="max-width:100%;display:block;margin:0 auto"></canvas>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-top:16px" id="figure-status">SUSPENDED · ASCENDING</div>
+      </div>
+
+      <!-- score ring below figure -->
+      <div class="card" style="width:100%;display:flex;align-items:center;justify-content:center;gap:28px;padding:20px">
+        <div style="position:relative;width:100px;height:100px">
+          <svg width="100" height="100" viewBox="0 0 100 100" style="position:absolute;top:0;left:0">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="5"/>
+            <circle id="fig-score-ring" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9"
+              transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s ease"/>
+          </svg>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Bebas Neue',cursive;font-size:24px;color:var(--accent)" id="fig-score-num">0%</div>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:4px">OVERALL PROGRESS</div>
+          <div style="font-family:'Bebas Neue',cursive;font-size:18px;color:var(--text)" id="fig-message">SET YOUR COORDINATES</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-top:6px" id="fig-goals-done">0 of 0 complete</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: goal list + body mapping -->
+    <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px">
+      <div class="card">
+        <div class="card-label">Body Map — Goals</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);margin-bottom:14px;line-height:1.7">
+          Each goal lights up a part of the figure.<br>Complete everything — the figure ascends.
+        </div>
+        <div id="fig-goal-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Add Goal</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input id="fig-goal-input" placeholder="new goal..." onkeydown="if(event.key==='Enter')addGoalFromFig()" />
+          <div class="row">
+            <select id="fig-goal-cat" style="flex:1">
+              <option value="finance">finance</option>
+              <option value="school">school</option>
+              <option value="career">career</option>
+              <option value="health">health</option>
+              <option value="personal">personal</option>
+              <option value="business">business</option>
+            </select>
+            <button class="btn" onclick="addGoalFromFig()">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Coordinates</div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:2px 0">
+          <div class="coord" id="fig-coord-date">—</div>
+          <div class="coord" id="fig-coord-debt">—</div>
+          <div class="coord" id="fig-coord-journal">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="oz-footer">
+  <span>ORIGIN ZERO · <span id="footer-date"></span></span>
+  <span>OMAR HERRERA · OZ CAPITAL · <span id="footer-coords"></span></span>
+</footer>
+
+<script>
+// ═══════════════ STAR FIELD ═══════════════
+(function() {
+  const canvas = document.getElementById('space-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, stars = [], shootingStars = [];
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initStars() {
+    stars = [];
+    const count = Math.floor((W * H) / 2200);
+    for (let i = 0; i < count; i++) {
+      const size = Math.random();
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: size < 0.7 ? Math.random() * 0.8 + 0.2    // small
+           : size < 0.92 ? Math.random() * 1.2 + 0.8  // medium
+           : Math.random() * 1.8 + 1.2,                // large/bright
+        baseAlpha: Math.random() * 0.5 + 0.15,
+        // Each star gets its own blink personality
+        blinkSpeed: Math.random() * 0.8 + 0.2,        // cycles per second
+        blinkDepth: Math.random() * 0.7 + 0.2,        // how much it dims
+        blinkOffset: Math.random() * Math.PI * 2,      // phase offset
+        blinkStyle: Math.random() > 0.5 ? 'sine' : 'pulse', // smooth or sharp
+        color: Math.random() > 0.88
+          ? (Math.random() > 0.5 ? '#c4d0ff' : '#ffd8c8')  // blue-white or orange
+          : '#ffffff'
+      });
+    }
+  }
+
+  function spawnShootingStar() {
+    // ~1 every 4-8 seconds on average
+    if (Math.random() > 0.0025) return;
+    const fromLeft = Math.random() > 0.5;
+    shootingStars.push({
+      x: fromLeft ? -20 : W + 20,
+      y: Math.random() * H * 0.55,
+      len: Math.random() * 200 + 100,
+      speed: Math.random() * 12 + 8,
+      alpha: 0,
+      fadeIn: true,
+      angle: fromLeft
+        ? (Math.PI * 0.12 + (Math.random() - 0.5) * 0.2)
+        : (Math.PI - Math.PI * 0.12 + (Math.random() - 0.5) * 0.2),
+      width: Math.random() * 1.5 + 0.8,
+      color: '#ffffff',
+      tailDecay: Math.random() * 0.3 + 0.7
+    });
+  }
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    t += 1 / 60;
+
+    // Stars with distinct blinking
+    stars.forEach(s => {
+      let blink;
+      if (s.blinkStyle === 'sine') {
+        blink = Math.sin(t * s.blinkSpeed * Math.PI * 2 + s.blinkOffset);
+      } else {
+        // Sharp pulse: mostly dim with quick flares
+        const phase = (t * s.blinkSpeed + s.blinkOffset / (Math.PI * 2)) % 1;
+        blink = phase < 0.15 ? Math.sin(phase / 0.15 * Math.PI) : -0.3;
+      }
+      const a = Math.max(0.02, Math.min(1, s.baseAlpha + blink * s.blinkDepth * 0.4));
+
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Larger stars get a soft glow halo
+      if (s.r > 1.4) {
+        ctx.globalAlpha = a * 0.12;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Rare accent stars get a cross/sparkle shape
+      if (s.r > 2.2 && a > 0.55) {
+        ctx.globalAlpha = a * 0.35;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(s.x - s.r * 4, s.y); ctx.lineTo(s.x + s.r * 4, s.y);
+        ctx.moveTo(s.x, s.y - s.r * 4); ctx.lineTo(s.x, s.y + s.r * 4);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+
+    // Shooting stars
+    spawnShootingStar();
+    shootingStars = shootingStars.filter(ss => ss.alpha > 0 || ss.fadeIn);
+    shootingStars.forEach(ss => {
+      if (ss.fadeIn) {
+        ss.alpha += 0.08;
+        if (ss.alpha >= 1) { ss.alpha = 1; ss.fadeIn = false; }
+      } else {
+        ss.alpha -= 0.022;
+      }
+
+      ctx.save();
+      const tailX = ss.x - Math.cos(ss.angle) * ss.len * ss.tailDecay;
+      const tailY = ss.y - Math.sin(ss.angle) * ss.len * ss.tailDecay;
+
+      const grad = ctx.createLinearGradient(ss.x, ss.y, tailX, tailY);
+      grad.addColorStop(0, `rgba(255,255,255,${ss.alpha})`);
+      grad.addColorStop(0.3, `rgba(220,220,220,${ss.alpha * 0.5})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = ss.width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ss.x, ss.y);
+      ctx.lineTo(tailX, tailY);
+      ctx.stroke();
+
+      // Bright head dot
+      ctx.globalAlpha = ss.alpha * 0.9;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ss.x, ss.y, ss.width * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+
+      ss.x += Math.cos(ss.angle) * ss.speed;
+      ss.y += Math.sin(ss.angle) * ss.speed;
+
+      // Remove if off screen
+      if (ss.x < -200 || ss.x > W + 200 || ss.y > H + 100) ss.alpha = 0;
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initStars();
+  draw();
+  window.addEventListener('resize', () => { resize(); initStars(); });
+})();
+
+// ═══════════════ STATE ═══════════════
+const S = {
+  apiKey: localStorage.getItem('oz_api_key') || '',
+  watchlist: JSON.parse(localStorage.getItem('oz_watchlist') || '["SPY","QQQ","AAPL","TSLA","BTC-USD"]'),
+  positions: JSON.parse(localStorage.getItem('oz_positions') || '[]'),
+  debts: JSON.parse(localStorage.getItem('oz_debts') || '[{"name":"Car Loan","balance":1500,"originalBalance":1500,"rate":0,"minPayment":200,"color":"#ff5a36"},{"name":"Credit Card","balance":800,"originalBalance":800,"rate":24.99,"minPayment":50,"color":"#f0a827"}]'),
+  journal: JSON.parse(localStorage.getItem('oz_journal') || '[]'),
+  goals: JSON.parse(localStorage.getItem('oz_goals') || '[{"name":"Pay off $2,300 debt","pct":0,"category":"finance"},{"name":"Land internship","pct":0,"category":"career"},{"name":"Pass all classes","pct":30,"category":"school"},{"name":"Build trading account","pct":0,"category":"finance"},{"name":"Launch Origin Zero","pct":5,"category":"business"}]'),
+  quotes: {},
+  history: {},
+  mood: '',
+  refreshTimer: null
+};
+
+// ═══════════════ FIREBASE ═══════════════
+let db = null;
+let fbUserId = 'omar-oz'; // single-user personal app
+let saveTimer = null;
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  const ind = document.getElementById('sync-indicator');
+  if (!dot) return;
+  ind.style.display = 'inline-flex';
+  dot.className = 'sync-dot ' + status;
+  txt.textContent = status === 'syncing' ? 'saving...' : status === 'synced' ? 'synced' : 'sync error';
+}
+
+async function connectFirebase() {
+  const raw = document.getElementById('fb-config-input').value.trim();
+  setErr('fb-error', '');
+  let config;
+  try {
+    const cleaned = raw.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+    config = JSON.parse(cleaned);
+    if (!config.apiKey || !config.projectId) throw new Error('missing fields');
+  } catch(e) {
+    setErr('fb-error', 'invalid config — paste the JSON object from Firebase console');
+    return;
+  }
+  try {
+    firebase.initializeApp(config);
+    db = firebase.firestore();
+    // test write
+    await db.collection('oz').doc(fbUserId).set({ _test: true }, { merge: true });
+    localStorage.setItem('oz_fb_config', JSON.stringify(config));
+    await loadFromFirebase();
+    launchApp();
+  } catch(e) {
+    setErr('fb-error', 'connection failed: ' + e.message);
+  }
+}
+
+function skipFirebase() {
+  localStorage.setItem('oz_fb_skipped', 'true');
+  launchApp();
+}
+
+async function loadFromFirebase() {
+  if (!db) return;
+  try {
+    const doc = await db.collection('oz').doc(fbUserId).get();
+    if (doc.exists) {
+      const d = doc.data();
+      if (d.journal) S.journal = d.journal;
+      if (d.goals) S.goals = d.goals;
+      if (d.debts) S.debts = d.debts;
+      if (d.positions) S.positions = d.positions;
+      if (d.watchlist) S.watchlist = d.watchlist;
+      // mirror to localStorage as cache
+      localStorage.setItem('oz_journal', JSON.stringify(S.journal));
+      localStorage.setItem('oz_goals', JSON.stringify(S.goals));
+      localStorage.setItem('oz_debts', JSON.stringify(S.debts));
+      localStorage.setItem('oz_positions', JSON.stringify(S.positions));
+      localStorage.setItem('oz_watchlist', JSON.stringify(S.watchlist));
+    }
+    setSyncStatus('synced');
+  } catch(e) { setSyncStatus('error'); }
+}
+
+function save() {
+  // Always save to localStorage immediately (fast, offline-safe)
+  localStorage.setItem('oz_api_key', S.apiKey);
+  localStorage.setItem('oz_watchlist', JSON.stringify(S.watchlist));
+  localStorage.setItem('oz_positions', JSON.stringify(S.positions));
+  localStorage.setItem('oz_debts', JSON.stringify(S.debts));
+  localStorage.setItem('oz_journal', JSON.stringify(S.journal));
+  localStorage.setItem('oz_goals', JSON.stringify(S.goals));
+  updateCoords();
+  // Debounce Firebase writes (300ms) to avoid hammering on slider drags
+  if (db) {
+    setSyncStatus('syncing');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try {
+        await db.collection('oz').doc(fbUserId).set({
+          journal: S.journal,
+          goals: S.goals,
+          debts: S.debts,
+          positions: S.positions,
+          watchlist: S.watchlist,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        setSyncStatus('synced');
+      } catch(e) { setSyncStatus('error'); }
+    }, 300);
+  }
+}
+
+function launchApp() {
+  document.getElementById('firebase-setup').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => {
+    if (p.id !== 'firebase-setup') p.style.display = '';
+  });
+  // show nav tabs
+  document.querySelector('.nav-tabs').style.visibility = 'visible';
+  applyColorMode();
+  renderGoals();
+  renderDebt();
+  renderJournal();
+  if (S.apiKey) {
+    document.getElementById('api-key-input').value = S.apiKey;
+    connectAPI();
+  }
+}
+
+// ═══════════════ NAV ═══════════════
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'debt') renderDebt();
+  if (id === 'journal') renderJournal();
+  if (id === 'goals') renderGoals();
+  if (id === 'figure') { figureT=0; renderFigurePage(); } else { if(figureRAF){cancelAnimationFrame(figureRAF);figureRAF=null;} }
+}
+
+// ═══════════════ MARKET ═══════════════
+async function connectAPI() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { setErr('api-error','paste your api key first'); return; }
+  const btn = document.querySelector('#api-banner .btn');
+  btn.textContent = 'Testing...'; btn.disabled = true;
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${key}`);
+    const d = await r.json();
+    if (!d.c || d.error) {
+      setErr('api-error','invalid key — check finnhub.io/dashboard');
+      btn.textContent = 'Connect'; btn.disabled = false; return;
+    }
+    S.apiKey = key; save();
+    document.getElementById('api-banner').style.display = 'none';
+    document.getElementById('market-overview').style.display = 'grid';
+    document.getElementById('status-dot').classList.add('live');
+    document.getElementById('status-text').textContent = 'live';
+    await loadMarket(); await loadNews();
+    if (S.refreshTimer) clearInterval(S.refreshTimer);
+    S.refreshTimer = setInterval(loadMarket, 30000);
+  } catch(e) {
+    setErr('api-error','connection failed — check key and try again');
+    btn.textContent = 'Connect'; btn.disabled = false;
+  }
+}
+
+async function fetchQ(sym) {
+  const s = sym.toUpperCase();
+  const isCrypto = s.includes('-');
+  const url = isCrypto
+    ? `https://finnhub.io/api/v1/quote?symbol=BINANCE:${s.replace('-USD','').replace('-USDT','')}USDT&token=${S.apiKey}`
+    : `https://finnhub.io/api/v1/quote?symbol=${s}&token=${S.apiKey}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (!d.c) return null;
+  return { sym:s, price:d.c, change:d.d||0, changePct:d.dp||0 };
+}
+
+async function loadMarket() {
+  const syms = [...new Set([...S.watchlist,'SPY','QQQ','BTC-USD'])];
+  const res = await Promise.allSettled(syms.map(s => fetchQ(s)));
+  res.forEach(r => {
+    if (r.status==='fulfilled' && r.value) {
+      const q = r.value;
+      S.quotes[q.sym] = q;
+      if (!S.history[q.sym]) S.history[q.sym] = [];
+      S.history[q.sym].push(q.price);
+      if (S.history[q.sym].length > 20) S.history[q.sym].shift();
+    }
+  });
+  updateOverview(); renderWatchlist(); updatePortfolio();
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function updateOverview() {
+  [['spy','SPY'],['qqq','QQQ'],['btc','BTC-USD']].forEach(([id,sym]) => {
+    const q = S.quotes[sym]; if (!q) return;
+    const up = q.changePct >= 0;
+    const priceEl = document.getElementById(`${id}-price`);
+    priceEl.textContent = '$' + fmt(q.price);
+    priceEl.className = 'metric-val ' + (up?'up':'dn');
+    const chgEl = document.getElementById(`${id}-chg`);
+    chgEl.textContent = (up?'+':'') + q.changePct.toFixed(2) + '% · ' + (up?'+':'-') + '$' + fmt(Math.abs(q.change));
+    chgEl.className = 'metric-sub ' + (up?'up':'dn');
+  });
+}
+
+function renderWatchlist() {
+  const list = document.getElementById('ticker-list');
+  if (!S.watchlist.length) { list.innerHTML = '<div class="loading">no tickers — add one below</div>'; return; }
+  list.innerHTML = S.watchlist.map(sym => {
+    const q = S.quotes[sym];
+    if (!q) return `<div class="ticker-row"><span class="ticker-sym">${sym}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);flex:1">loading...</span></div>`;
+    const up = q.changePct >= 0;
+    const hist = S.history[sym] || [q.price];
+    return `<div class="ticker-row">
+      <span class="ticker-sym">${sym}</span>
+      ${spark(hist, up?'#c8f03a':'#ff5a36')}
+      <span class="ticker-price">$${fmt(q.price)}</span>
+      <span class="ticker-chg ${up?'up':'dn'}">${up?'+':''}${q.changePct.toFixed(2)}%</span>
+      <button class="ticker-rm" onclick="removeTicker('${sym}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function spark(prices, color) {
+  if (prices.length < 2) return `<svg width="64" height="28" viewBox="0 0 64 28"><line x1="0" y1="14" x2="64" y2="14" stroke="${color}" stroke-width="1" opacity="0.3"/></svg>`;
+  const mn = Math.min(...prices), mx = Math.max(...prices), rng = mx-mn||1;
+  const step = 64/(prices.length-1);
+  const pts = prices.map((p,i) => `${(i*step).toFixed(1)},${(26-(p-mn)/rng*22).toFixed(1)}`).join(' ');
+  return `<svg width="64" height="28" viewBox="0 0 64 28"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+async function addTicker() {
+  const input = document.getElementById('add-ticker-input');
+  const sym = input.value.trim().toUpperCase();
+  setErr('ticker-error','');
+  if (!sym) return;
+  if (S.watchlist.includes(sym)) { setErr('ticker-error', sym+' already in watchlist'); return; }
+  if (!S.apiKey) { setErr('ticker-error','connect api first'); return; }
+  input.value = ''; S.watchlist.push(sym); renderWatchlist();
+  const q = await fetchQ(sym);
+  if (!q) { S.watchlist = S.watchlist.filter(s=>s!==sym); renderWatchlist(); setErr('ticker-error',"can't find "+sym+" — check symbol"); return; }
+  S.quotes[sym] = q; S.history[sym] = [q.price]; save(); renderWatchlist();
+}
+function removeTicker(sym) { S.watchlist=S.watchlist.filter(s=>s!==sym); delete S.quotes[sym]; delete S.history[sym]; save(); renderWatchlist(); }
+async function refreshMarket() { if (S.apiKey) await loadMarket(); }
+
+async function loadNews() {
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${S.apiKey}`);
+    const items = await r.json();
+    const list = document.getElementById('news-list');
+    if (!items||!items.length) { list.innerHTML='<div class="loading">no headlines</div>'; return; }
+    list.innerHTML = items.slice(0,6).map(n => {
+      const t = new Date(n.datetime*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="news-item" onclick="window.open('${n.url}','_blank')">
+        <div class="news-headline">${n.headline}</div>
+        <div class="news-meta">${n.source} · ${t}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('news-time').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { document.getElementById('news-list').innerHTML='<div class="loading">news unavailable</div>'; }
+}
+
+function addPosition() {
+  const sym = document.getElementById('pb-sym').value.trim().toUpperCase();
+  const shares = parseFloat(document.getElementById('pb-shares').value);
+  const cost = parseFloat(document.getElementById('pb-cost').value);
+  if (!sym||!shares||!cost) return;
+  S.positions.push({sym,shares,cost});
+  ['pb-sym','pb-shares','pb-cost'].forEach(id => document.getElementById(id).value='');
+  save(); updatePortfolio();
+}
+function removePosition(i) { S.positions.splice(i,1); save(); updatePortfolio(); }
+
+function updatePortfolio() {
+  let tv=0,tc=0;
+  S.positions.forEach(p => {
+    const q=S.quotes[p.sym]; const cur=q?q.price:p.cost;
+    tv+=cur*p.shares; tc+=p.cost*p.shares;
+  });
+  const pnl=tv-tc, pct=tc?(pnl/tc*100):0;
+  document.getElementById('port-total').textContent='$'+fmt(tv);
+  document.getElementById('port-cost').textContent='$'+fmt(tc);
+  document.getElementById('port-pnl').textContent=(pnl>=0?'+$':'-$')+fmt(Math.abs(pnl));
+  document.getElementById('port-pnl').className='metric-val '+(pnl>=0?'up':'dn');
+  document.getElementById('port-pct').textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
+  document.getElementById('port-pct').className='metric-val '+(pct>=0?'up':'dn');
+  const tbl=document.getElementById('positions-table');
+  if (!S.positions.length) { tbl.innerHTML=''; return; }
+  tbl.innerHTML=`<table class="table"><thead><tr><th>Symbol</th><th>Shares</th><th>Avg Cost</th><th>Current</th><th>P&L</th><th></th></tr></thead><tbody>`+
+    S.positions.map((p,i)=>{
+      const q=S.quotes[p.sym]; const cur=q?q.price:p.cost;
+      const pnl=(cur-p.cost)*p.shares; const pp=((cur-p.cost)/p.cost*100).toFixed(1);
+      return `<tr><td style="color:var(--text);font-weight:700">${p.sym}</td><td>${p.shares}</td><td>$${fmt(p.cost)}</td><td>${q?'$'+fmt(cur):'—'}</td>
+        <td class="${pnl>=0?'up':'dn'}">${pnl>=0?'+$':'-$'}${fmt(Math.abs(pnl))} (${pnl>=0?'+':''}${pp}%)</td>
+        <td><button class="ticker-rm" onclick="removePosition(${i})">×</button></td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+
+// ═══════════════ DEBT ═══════════════
+function addDebt() {
+  const name=document.getElementById('debt-name').value.trim();
+  const balance=parseFloat(document.getElementById('debt-balance').value);
+  const rate=parseFloat(document.getElementById('debt-rate').value)||0;
+  const minPayment=parseFloat(document.getElementById('debt-min').value)||25;
+  if (!name||isNaN(balance)) { setErr('debt-error','enter name and balance'); return; }
+  const colors=['#ff5a36','#f0a827','#4a9eff','#c8f03a','#a855f7'];
+  S.debts.push({name,balance,originalBalance:balance,rate,minPayment,color:colors[S.debts.length%colors.length]});
+  ['debt-name','debt-balance','debt-rate','debt-min'].forEach(id=>document.getElementById(id).value='');
+  setErr('debt-error',''); save(); renderDebt();
+}
+
+function renderDebt() {
+  const total=S.debts.reduce((s,d)=>s+d.balance,0);
+  const orig=S.debts.reduce((s,d)=>s+d.originalBalance,0);
+  const paid=orig-total, pct=orig?Math.round(paid/orig*100):0;
+  document.getElementById('debt-total').textContent='$'+fmt(total);
+  document.getElementById('debt-paid').textContent='$'+fmt(paid);
+  document.getElementById('debt-pct').textContent=pct+'%';
+  const list=document.getElementById('debt-list');
+  if (!S.debts.length) { list.innerHTML='<div class="loading">no debts — you\'re free</div>'; calcPayoff(); return; }
+  list.innerHTML=S.debts.map((d,i)=>{
+    const pct=Math.round((1-d.balance/d.originalBalance)*100);
+    return `<div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;font-weight:500">${d.name}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="badge ${pct>=100?'badge-green':'badge-amber'}">${pct}% paid</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--red)">$${fmt(d.balance)}</span>
+          <button class="btn-ghost" style="padding:5px 10px;font-size:9px" onclick="makePayment(${i})">pay</button>
+          <button class="ticker-rm" onclick="removeDebt(${i})">×</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)">APR ${d.rate}% · min $${d.minPayment}/mo</span>
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)">started $${fmt(d.originalBalance)}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${d.color}"></div></div>
+    </div>`;
+  }).join('');
+  calcPayoff();
+}
+
+function makePayment(i) {
+  const amount=prompt(`Payment for ${S.debts[i].name}?\nBalance: $${fmt(S.debts[i].balance)}`);
+  if (!amount||isNaN(parseFloat(amount))) return;
+  S.debts[i].balance=Math.max(0,S.debts[i].balance-parseFloat(amount));
+  save(); renderDebt();
+}
+function removeDebt(i) { if(confirm('Remove this debt?')){ S.debts.splice(i,1); save(); renderDebt(); }}
+
+function calcPayoff() {
+  const monthly=parseFloat(document.getElementById('monthly-budget').value)||0;
+  const result=document.getElementById('payoff-result');
+  const debts=JSON.parse(JSON.stringify(S.debts));
+  if (!debts.length) { result.innerHTML='<div class="loading">add debts to calculate</div>'; return; }
+  if (!monthly) { result.innerHTML='<div class="loading">enter monthly budget above</div>'; return; }
+  const totalMin=debts.filter(d=>d.balance>0).reduce((s,d)=>s+d.minPayment,0);
+  if (monthly<totalMin) { result.innerHTML=`<span class="error" style="display:block">need at least $${fmt(totalMin)}/mo for minimums</span>`; return; }
+  const method=document.getElementById('debt-method').value;
+  let months=0, totalInterest=0;
+  while (debts.some(d=>d.balance>0) && months<600) {
+    months++;
+    const active=debts.filter(d=>d.balance>0);
+    if (method==='avalanche') active.sort((a,b)=>b.rate-a.rate);
+    else active.sort((a,b)=>a.balance-b.balance);
+    let extra=monthly-active.reduce((s,d)=>s+Math.min(d.minPayment,d.balance),0);
+    active.forEach((d,idx)=>{
+      const interest=d.balance*(d.rate/100/12);
+      totalInterest+=interest; d.balance+=interest;
+      const pay=Math.min(d.balance,d.minPayment+(idx===0?extra:0));
+      d.balance=Math.max(0,d.balance-pay);
+    });
+  }
+  const yrs=Math.floor(months/12), mos=months%12;
+  const payoffDate=new Date(); payoffDate.setMonth(payoffDate.getMonth()+months);
+  result.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
+    <div class="row"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);flex:1">Debt-free date</span>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${payoffDate.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span></div>
+    <div class="row"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);flex:1">Time remaining</span>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${yrs>0?yrs+'y ':''} ${mos}mo</span></div>
+    <div class="row"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);flex:1">Total interest</span>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--red)">$${fmt(totalInterest)}</span></div>
+    <div class="row"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);flex:1">Strategy</span>
+      <span class="badge ${method==='avalanche'?'badge-blue':'badge-green'}">${method}</span></div>
+  </div>`;
+}
+
+// ═══════════════ JOURNAL ═══════════════
+function selectMood(btn,mood) {
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected'); S.mood=mood;
+}
+function saveEntry() {
+  const text=document.getElementById('journal-input').value.trim();
+  if (!text) return;
+  S.journal.unshift({
+    text, tag:document.getElementById('journal-tag').value, mood:S.mood,
+    date:new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}),
+    time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),
+    ts:Date.now()
+  });
+  document.getElementById('journal-input').value='';
+  document.getElementById('journal-tag').value='';
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+  S.mood=''; save(); renderJournal();
+}
+function renderJournal() {
+  const filter=document.getElementById('journal-filter').value;
+  const entries=filter?S.journal.filter(e=>e.tag===filter):S.journal;
+  document.getElementById('j-total').textContent=S.journal.length;
+  document.getElementById('j-month').textContent=S.journal.filter(e=>new Date(e.ts).getMonth()===new Date().getMonth()).length;
+  const days=[...new Set(S.journal.map(e=>new Date(e.ts).toDateString()))];
+  let streak=0;
+  for(let i=0;i<days.length;i++){const d=new Date();d.setDate(d.getDate()-i);if(days.includes(d.toDateString()))streak++;else break;}
+  document.getElementById('j-streak').textContent=streak+'d';
+  const tagC={trade:'badge-blue',school:'badge-green',personal:'badge-gray','business / oz':'badge-purple',business:'badge-purple',reflection:'badge-gray',goal:'badge-green',finance:'badge-amber'};
+  const container=document.getElementById('journal-entries');
+  if (!entries.length){container.innerHTML='<div class="loading">no entries'+(filter?' with this tag':'')+'</div>';return;}
+  container.innerHTML=entries.map((e,i)=>`
+    <div class="journal-entry">
+      <div class="journal-meta">
+        <span>${e.date} · ${e.time}${e.mood?' · '+e.mood:''}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${e.tag?`<span class="badge ${tagC[e.tag]||'badge-gray'}">${e.tag}</span>`:''}
+          <button class="journal-rm" onclick="removeEntry(${i})">×</button>
+        </div>
+      </div>
+      <div class="journal-text">${e.text}</div>
+    </div>`).join('');
+}
+function removeEntry(i) {
+  const filter=document.getElementById('journal-filter').value;
+  const filtered=filter?S.journal.filter(e=>e.tag===filter):S.journal;
+  const entry=filtered[i];
+  S.journal=S.journal.filter(e=>e!==entry);
+  save(); renderJournal();
+}
+
+// ═══════════════ GOALS ═══════════════
+function renderGoals() {
+  const list=document.getElementById('goals-list');
+  const catC={finance:'badge-amber',school:'badge-blue',career:'badge-green',health:'badge-red',personal:'badge-gray',business:'badge-purple'};
+  list.innerHTML=S.goals.map((g,i)=>`
+    <div class="goal-row">
+      <div class="goal-header">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="goal-name">${g.name}</span>
+          <span class="badge ${catC[g.category]||'badge-gray'}">${g.category}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" min="0" max="100" value="${g.pct}" style="width:80px" oninput="updateGoal(${i},this.value)" />
+          <span class="goal-pct">${g.pct}%</span>
+          <button class="ticker-rm" onclick="removeGoal(${i})">×</button>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${g.pct}%;background:var(--accent);box-shadow:0 0 6px rgba(200,240,58,0.3)"></div></div>
+    </div>`).join('');
+  const avg=S.goals.length?Math.round(S.goals.reduce((s,g)=>s+g.pct,0)/S.goals.length):0;
+  const done=S.goals.filter(g=>g.pct>=100).length;
+  document.getElementById('oz-score').textContent=avg+'%';
+  document.getElementById('goals-count').textContent=S.goals.length;
+  document.getElementById('goals-done').textContent=done;
+  const offset=364.4*(1-avg/100);
+  document.getElementById('score-ring').style.strokeDashoffset=offset;
+  const msgs=['set your goals and start moving','you started. that already matters.','building momentum — keep going.','halfway. the hard part is staying.','almost. finish what you started.','origin zero — mission complete.'];
+  document.getElementById('oz-message').textContent=msgs[Math.min(Math.floor(avg/20),msgs.length-1)];
+}
+function updateGoal(i,val){S.goals[i].pct=parseInt(val);save();renderGoals();}
+function removeGoal(i){S.goals.splice(i,1);save();renderGoals();}
+function addGoal(){
+  const name=document.getElementById('goal-input').value.trim();
+  const category=document.getElementById('goal-category').value;
+  if(!name)return;
+  S.goals.push({name,pct:0,category});
+  document.getElementById('goal-input').value='';
+  save();renderGoals();
+}
+
+
+// ═══════════════ FIGURE PAGE ═══════════════
+let figureRAF = null;
+let figureT = 0;
+
+function renderFigurePage() {
+  const avg = S.goals.length ? Math.round(S.goals.reduce((s,g)=>s+g.pct,0)/S.goals.length) : 0;
+  const done = S.goals.filter(g=>g.pct>=100).length;
+
+  // Score ring
+  const offset = 263.9 * (1 - avg/100);
+  const ring = document.getElementById('fig-score-ring');
+  const num = document.getElementById('fig-score-num');
+  if(ring) ring.style.strokeDashoffset = offset;
+  if(num) num.textContent = avg + '%';
+  const msgs = ['SET YOUR COORDINATES','YOU STARTED — KEEP GOING','BUILDING MOMENTUM','HALFWAY — STAY THE COURSE','ALMOST THERE','ORIGIN ZERO — COMPLETE'];
+  const msgEl = document.getElementById('fig-message');
+  if(msgEl) msgEl.textContent = msgs[Math.min(Math.floor(avg/20), msgs.length-1)];
+  const doneEl = document.getElementById('fig-goals-done');
+  if(doneEl) doneEl.textContent = done + ' of ' + S.goals.length + ' complete';
+
+  // Coordinates
+  const now = new Date();
+  const d1 = document.getElementById('fig-coord-date');
+  const d2 = document.getElementById('fig-coord-debt');
+  const d3 = document.getElementById('fig-coord-journal');
+  if(d1) d1.textContent = 'DATE · ' + now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}).toUpperCase();
+  if(d2) d2.textContent = 'DEBT · $' + fmt(S.debts.reduce((s,d)=>s+d.balance,0));
+  if(d3) d3.textContent = 'JOURNAL · ' + S.journal.length + ' ENTRIES';
+
+  // Goal list
+  const catC = {finance:'badge-amber',school:'badge-blue',career:'badge-green',health:'badge-red',personal:'badge-gray',business:'badge-purple'};
+  const gl = document.getElementById('fig-goal-list');
+  if(gl) gl.innerHTML = S.goals.map((g,i) => `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${g.pct>=100?'var(--accent)':'transparent'};border:1px solid var(--text3);flex-shrink:0;transition:background 0.4s"></div>
+          <span style="font-size:12px;font-weight:500;color:${g.pct>=100?'var(--accent)':'var(--text)'}">${g.name}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" min="0" max="100" value="${g.pct}" style="width:70px;accent-color:var(--accent)" oninput="updateGoalBoth(${i},this.value)" />
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);min-width:30px">${g.pct}%</span>
+          <button class="ticker-rm" onclick="removeGoal(${i});renderFigurePage()">×</button>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${g.pct}%;background:var(--accent)"></div></div>
+    </div>`).join('');
+
+  // Draw canvas figure
+  drawFigure(avg);
+}
+
+function updateGoalBoth(i, val) {
+  S.goals[i].pct = parseInt(val);
+  save();
+  renderGoals();
+  renderFigurePage();
+}
+
+function addGoalFromFig() {
+  const name = document.getElementById('fig-goal-input').value.trim();
+  const category = document.getElementById('fig-goal-cat').value;
+  if(!name) return;
+  S.goals.push({name, pct:0, category});
+  document.getElementById('fig-goal-input').value = '';
+  save(); renderGoals(); renderFigurePage();
+}
+
+function drawFigure(progress) {
+  const canvas = document.getElementById('figure-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  figureT += 0.005;
+  const t = figureT;
+
+  // ── PERSPECTIVE 3D PROJECTION ──
+  // Slow Y-axis rotation + gentle float, NO STRING
+  const rotY = t * 0.25; // slow spin
+  const floatOffset = Math.sin(t * 0.7) * 14;
+  const breathe = Math.sin(t * 1.4) * 1.5; // chest breathe
+  const cx = W / 2;
+  const cy = H / 2 - 20 + floatOffset;
+  const fov = 320; // perspective focal length
+
+  // Colors from the face image
+  const b = 0.55 + (progress/100)*0.45;
+  const RED    = (a) => `rgba(255,25,75,${a*b})`;
+  const GREEN  = (a) => `rgba(0,255,90,${a*b})`;
+  const BLUE   = (a) => `rgba(60,170,255,${a*b})`;
+  const CYAN   = (a) => `rgba(0,230,255,${a*b})`;
+  const PURPLE = (a) => `rgba(170,50,255,${a*b})`;
+  const PINK   = (a) => `rgba(255,60,190,${a*b})`;
+
+  // Project 3D point to 2D canvas
+  function proj(x, y, z) {
+    const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+    const rx = x * cosY - z * sinY;
+    const rz = x * sinY + z * cosY;
+    const scale = fov / (fov + rz + 120);
+    return { x: cx + rx * scale, y: cy + y * scale, z: rz, s: scale };
+  }
+
+  // Draw a 3D line with depth-based alpha
+  function line3D(x1,y1,z1, x2,y2,z2, color, lw=0.8) {
+    const p1 = proj(x1,y1,z1), p2 = proj(x2,y2,z2);
+    const depthA = Math.max(0.15, Math.min(1, 0.5 + (p1.z + p2.z) * -0.003));
+    ctx.strokeStyle = color(depthA);
+    ctx.lineWidth = lw * ((p1.s + p2.s) / 2);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+
+  // Draw an ellipse in 3D (approximated as polygon)
+  function ellipse3D(cx3, cy3, cz3, rx, ry, plane, color, lw=0.8, segments=16) {
+    const pts = [];
+    for (let i = 0; i <= segments; i++) {
+      const a = (i/segments) * Math.PI * 2;
+      let x=cx3, y=cy3, z=cz3;
+      if (plane==='xz') { x+=Math.cos(a)*rx; z+=Math.sin(a)*ry; }
+      else if (plane==='xy') { x+=Math.cos(a)*rx; y+=Math.sin(a)*ry; }
+      else { y+=Math.cos(a)*ry; z+=Math.sin(a)*rx; }
+      pts.push(proj(x,y,z));
+    }
+    const depthA = Math.max(0.15, Math.min(1, 0.5 - cz3 * 0.003));
+    ctx.strokeStyle = color(depthA); ctx.lineWidth = lw;
+    ctx.beginPath();
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+  }
+
+  // Draw a filled 3D polygon
+  function fill3D(pts3D, color) {
+    const pts = pts3D.map(p => proj(p[0],p[1],p[2]));
+    const avgZ = pts.reduce((s,p)=>s+p.z,0)/pts.length;
+    const a = Math.max(0.03, 0.12 - avgZ*0.001);
+    ctx.fillStyle = color(a);
+    ctx.beginPath();
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // ── GLOW AURA ──
+  const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, 180*(0.3+progress*0.007));
+  aura.addColorStop(0,   `rgba(255,25,75,${0.07*(progress/100)})`);
+  aura.addColorStop(0.4, `rgba(0,150,255,${0.05*(progress/100)})`);
+  aura.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = aura;
+  ctx.beginPath(); ctx.arc(cx, cy, 200, 0, Math.PI*2); ctx.fill();
+
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // ══ BODY PROPORTIONS (Y-up, centered at pelvis = 0) ══
+  // Y: positive = up on figure, z: depth
+  const hy = 220;   // head top
+  const ny = 170;   // neck
+  const sy = 150;   // shoulders
+  const cy3= 80;    // chest mid
+  const wy = 20;    // waist
+  const hy2= 0;     // hip
+  const ky = -110;  // knee
+  const ay = -220;  // ankle
+  const sw = 55;    // shoulder half-width
+  const hw = 30;    // hip half-width
+  const d  = 18;    // body depth
+
+  // ── HEAD ── (oval with grid)
+  const headY = (hy + ny)/2;
+  const headH = (hy - ny)/2 + 8;
+  const headW = 30;
+  // Head fill
+  fill3D([[-headW,ny,-d],[headW,ny,-d],[headW,hy,-d],[-headW,hy,-d]], RED);
+  // Horizontal head lines
+  for (let i=0; i<=5; i++) {
+    const y = ny + (i/5)*(hy-ny);
+    const hw2 = headW * Math.sin(Math.acos(Math.abs((y-headY)/headH)));
+    line3D(-hw2,y,-d, hw2,y,-d, RED, 0.7);
+    line3D(-hw2,y, d, hw2,y, d, RED, 0.4);
+  }
+  // Vertical head lines
+  for (let i=-3; i<=3; i++) {
+    const x = i*(headW/3);
+    line3D(x,ny,-d, x,hy,-d, GREEN, 0.7);
+    line3D(x,ny, d, x,hy, d, GREEN, 0.4);
+  }
+  // Head silhouette ellipses
+  ellipse3D(0,headY,-d, headW,headH,'xy', PURPLE, 1.2);
+  ellipse3D(0,headY, d, headW,headH,'xy', PURPLE, 0.5);
+  // Cross-section circles (horizontal slices)
+  for (let i=1; i<=3; i++) {
+    const y = ny + (i/4)*(hy-ny);
+    const r = headW * Math.sin(Math.acos(Math.abs((y-headY)/headH)));
+    ellipse3D(0,y,0, r,d,'xz', RED, 0.5, 12);
+  }
+  // EYES
+  const eyeY = headY + headH*0.1;
+  for (let s=-1; s<=1; s+=2) {
+    const ep = proj(s*11, eyeY, -d-1);
+    ctx.shadowColor = 'rgba(0,230,255,0.9)'; ctx.shadowBlur = 12;
+    ctx.fillStyle = CYAN(0.9); ctx.beginPath(); ctx.ellipse(ep.x, ep.y, 7*ep.s, 5*ep.s, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = BLUE(1); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(ep.x, ep.y, 7*ep.s, 5*ep.s, 0, 0, Math.PI*2); ctx.stroke();
+  }
+  // Nose
+  line3D(0,headY-5,-d-2, -4,headY-18,-d-2, GREEN, 0.7);
+  line3D(0,headY-5,-d-2,  4,headY-18,-d-2, GREEN, 0.7);
+  line3D(-5,headY-20,-d-2, 5,headY-20,-d-2, GREEN, 0.6);
+  // Mouth
+  const mY = headY - headH*0.45;
+  for (let i=0; i<=6; i++) {
+    const a = Math.PI*0.15 + (i/6)*Math.PI*0.7;
+    const mx = Math.cos(a)*12, my2 = -Math.abs(Math.sin(a))*4 + mY;
+    if (i>0) line3D(Math.cos((i-1)/6*Math.PI*0.7+Math.PI*0.15)*12, -Math.abs(Math.sin((i-1)/6*Math.PI*0.7+Math.PI*0.15))*4+mY,-d-1, mx,my2,-d-1, PINK, 0.9);
+  }
+
+  // ── NECK ──
+  ellipse3D(0,ny,0, 12,d*0.6,'xz', RED, 0.7, 8);
+  ellipse3D(0,sy,0, 14,d*0.5,'xz', RED, 0.6, 8);
+  line3D(-10,ny,-8, -10,sy,-8, GREEN, 0.6);
+  line3D( 10,ny,-8,  10,sy,-8, GREEN, 0.6);
+  line3D(-10,ny, 8, -10,sy, 8, GREEN, 0.4);
+  line3D( 10,ny, 8,  10,sy, 8, GREEN, 0.4);
+
+  // ── TORSO ──
+  // Front face fill
+  fill3D([[-sw,sy,-d],[sw,sy,-d],[hw,wy,-d],[-hw,wy,-d]], RED);
+  // Back face
+  fill3D([[-sw,sy,d],[sw,sy,d],[hw,wy,d],[-hw,wy,d]], RED);
+  // Chest horizontal bands
+  for (let i=0; i<=7; i++) {
+    const frac=i/7, y=sy+(wy-sy)*frac;
+    const w=sw+(hw-sw)*frac + breathe*(1-frac)*0.5;
+    line3D(-w,y,-d, w,y,-d, RED, 0.75);
+    line3D(-w,y, d, w,y, d, RED, 0.4);
+    // side edge
+    line3D(-w,y,-d, -w,y,d, RED, 0.3);
+    line3D( w,y,-d,  w,y,d, RED, 0.3);
+  }
+  // Vertical spine + ribs
+  line3D(0,sy,-d, 0,wy,-d, GREEN, 0.9);
+  for (let i=1; i<=5; i++) {
+    const y=sy-(i/5)*(sy-wy); const fw=sw+(hw-sw)*(i/5);
+    line3D(-fw*0.15,y,-d, -fw*0.75,y-12,-d, GREEN, 0.5);
+    line3D( fw*0.15,y,-d,  fw*0.75,y-12,-d, GREEN, 0.5);
+  }
+  // Vertical torso lines front
+  for (let x=-sw; x<=sw; x+=sw/2.5) {
+    const xb=x*(hw/sw);
+    line3D(x,sy,-d, xb,wy,-d, GREEN, 0.5);
+    line3D(x,sy, d, xb,wy, d, GREEN, 0.3);
+  }
+  // Blue diagonal cross
+  line3D(-sw,sy,-d, hw,wy,-d, BLUE, 0.5);
+  line3D( sw,sy,-d,-hw,wy,-d, BLUE, 0.5);
+  // Collarbone
+  line3D(-sw,sy,-d, sw,sy,-d, PURPLE, 1.1);
+  line3D(-sw,sy, d, sw,sy, d, PURPLE, 0.5);
+  // Sternum center glow
+  const chestP = proj(0, cy3, -d-2);
+  ctx.shadowColor='rgba(0,230,255,0.6)'; ctx.shadowBlur=8;
+  ctx.strokeStyle=CYAN(0.7); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(chestP.x, chestP.y, 5*chestP.s, 0, Math.PI*2); ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // ── PELVIS/HIPS ──
+  ellipse3D(0,hy2,0, hw+4,d,'xz', PURPLE, 1, 12);
+  for (let i=-2; i<=2; i++) {
+    line3D(i*(hw/2),wy,-d, i*(hw/2+2),hy2,-d, GREEN, 0.5);
+    line3D(i*(hw/2),wy, d, i*(hw/2+2),hy2, d, GREEN, 0.3);
+  }
+  line3D(-hw,wy,-d, -(hw+4),hy2,-d, RED, 0.7);
+  line3D( hw,wy,-d,  (hw+4),hy2,-d, RED, 0.7);
+
+  // ── ARMS ──
+  const armSwing = Math.sin(t * 0.85) * 18;
+  function drawArm3D(side, swing) {
+    const s=side, elbZ=s*-8;
+    // Shoulder joint glow
+    const sp=proj(s*sw, sy, 0);
+    ctx.shadowColor='rgba(0,230,255,0.8)'; ctx.shadowBlur=10;
+    ctx.fillStyle=CYAN(0.8); ctx.beginPath(); ctx.arc(sp.x,sp.y,4*sp.s,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    // Upper arm (shoulder to elbow)
+    const elbY=sy-70, elbX=s*(sw+12+swing*0.3);
+    for (let i=0; i<=4; i++) {
+      const f=i/4, y=sy+(elbY-sy)*f, x=s*sw+(elbX-s*sw)*f;
+      line3D(x-4,y,-8, x+4,y,-8, RED, 0.7);
+      line3D(x-4,y, 4, x+4,y, 4, RED, 0.4);
+    }
+    line3D(s*sw,sy,-8, elbX-4,elbY,-8, GREEN, 0.6);
+    line3D(s*sw,sy,-8, elbX+4,elbY,-8, GREEN, 0.6);
+    // Elbow
+    const ep=proj(elbX,elbY,-5);
+    ctx.shadowColor='rgba(0,230,255,0.8)'; ctx.shadowBlur=8;
+    ctx.fillStyle=CYAN(0.8); ctx.beginPath(); ctx.arc(ep.x,ep.y,4*ep.s,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    // Forearm (elbow to wrist)
+    const wrY=elbY-70, wrX=s*(sw+8+swing*0.6);
+    for (let i=0; i<=3; i++) {
+      const f=i/3, y=elbY+(wrY-elbY)*f, x=elbX+(wrX-elbX)*f;
+      line3D(x-3,y,-6, x+3,y,-6, BLUE, 0.7);
+      line3D(x-3,y, 3, x+3,y, 3, BLUE, 0.4);
+    }
+    line3D(elbX,elbY,-6, wrX,wrY,-6, GREEN, 0.5);
+    // Wrist
+    const wp=proj(wrX,wrY,-4);
+    ctx.strokeStyle=PURPLE(0.8); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(wp.x,wp.y,4*wp.s,0,Math.PI*2); ctx.stroke();
+    // Hand blob
+    for (let i=-2; i<=2; i++) {
+      const fy=wrY-16, fx=wrX+i*3;
+      line3D(wrX,wrY,-4, fx,fy,-4, RED, 0.6);
+    }
+    ellipse3D(wrX,wrY-8,-4, 8,5,'xy', RED, 0.7, 8);
+  }
+  drawArm3D(-1, -armSwing);
+  drawArm3D( 1,  armSwing);
+
+  // ── LEGS ──
+  const legSwing = Math.sin(t * 0.85 + Math.PI) * 14;
+  function drawLeg3D(side, swing) {
+    const s=side;
+    const hipX=s*(hw*0.7), hipY=hy2;
+    const kX=s*(hw*0.5 + swing*s*0.3), kY=ky;
+    const aX=s*(hw*0.4), aY=ay;
+    // Hip joint
+    const hp=proj(hipX,hipY,0);
+    ctx.shadowColor='rgba(255,25,75,0.8)'; ctx.shadowBlur=8;
+    ctx.fillStyle=RED(0.8); ctx.beginPath(); ctx.arc(hp.x,hp.y,5*hp.s,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    // Thigh bands
+    for (let i=0; i<=5; i++) {
+      const f=i/5, y=hipY+(kY-hipY)*f, x=hipX+(kX-hipX)*f;
+      line3D(x-7,y,-10, x+7,y,-10, RED, 0.75);
+      line3D(x-7,y, 7,  x+7,y, 7,  RED, 0.4);
+      line3D(x-7,y,-10, x-7,y, 7, RED, 0.2);
+      line3D(x+7,y,-10, x+7,y, 7, RED, 0.2);
+    }
+    line3D(hipX,hipY,-10, kX,kY,-10, GREEN, 0.6);
+    line3D(hipX,hipY, 7,  kX,kY, 7,  GREEN, 0.35);
+    // Pink diagonal muscle line
+    line3D(hipX-7,hipY,-10, kX+7,kY,-10, PINK, 0.4);
+    // Knee joint
+    const kp=proj(kX,kY,-5);
+    ctx.shadowColor='rgba(0,230,255,0.8)'; ctx.shadowBlur=10;
+    ctx.fillStyle=CYAN(0.85); ctx.beginPath(); ctx.arc(kp.x,kp.y,5*kp.s,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ellipse3D(kX,kY,0, 8,8,'xz', CYAN, 0.6, 8);
+    // Shin
+    for (let i=0; i<=4; i++) {
+      const f=i/4, y=kY+(aY-kY)*f, x=kX+(aX-kX)*f;
+      line3D(x-5,y,-8, x+5,y,-8, BLUE, 0.75);
+      line3D(x-5,y, 5, x+5,y, 5, BLUE, 0.4);
+    }
+    line3D(kX,kY,-8, aX,aY,-8, GREEN, 0.5);
+    // Blue diagonal shin
+    line3D(kX-5,kY,-8, aX+5,aY,-8, BLUE, 0.35);
+    // Ankle
+    const ap=proj(aX,aY,-4);
+    ctx.strokeStyle=PURPLE(0.7); ctx.lineWidth=0.9;
+    ctx.beginPath(); ctx.arc(ap.x,ap.y,4*ap.s,0,Math.PI*2); ctx.stroke();
+    // Foot
+    const footX=aX+s*4, footY=aY-10;
+    fill3D([[aX-6,aY,- 8],[aX+8,aY,-8],[footX+10,footY,-6],[aX-6,footY,-6]], RED);
+    line3D(aX-6,aY,-8, aX+8,aY,-8, RED, 0.8);
+    line3D(aX-6,footY,-6, footX+10,footY,-6, RED, 0.8);
+    for (let i=0; i<=3; i++) {
+      const fx=aX-6+(i/3)*14;
+      line3D(fx,aY,-8, fx+(s*2),footY,-6, GREEN, 0.5);
+    }
+  }
+  drawLeg3D(-1, -legSwing);
+  drawLeg3D( 1,  legSwing);
+
+  // ── PLATFORM — no string, just floating ──
+  const platY_px = cy + 160 + (1-progress/100)*20;
+  const platW_px = 100 + (progress/100)*60;
+  const platOpacity = 0.2 + (progress/100)*0.5;
+  // Draw platform as 3D grid on canvas (2D shortcut — it's below the figure)
+  ctx.strokeStyle = `rgba(255,25,75,${platOpacity})`; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(cx-platW_px/2, platY_px); ctx.lineTo(cx+platW_px/2, platY_px); ctx.stroke();
+  ctx.strokeStyle = `rgba(0,255,90,${platOpacity*0.6})`; ctx.lineWidth = 0.5;
+  for (let i=1; i<5; i++) {
+    ctx.beginPath(); ctx.moveTo(cx-platW_px/2+i*(platW_px/5), platY_px); ctx.lineTo(cx-platW_px/2+i*(platW_px/5), platY_px+8); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(cx-platW_px/2, platY_px+5); ctx.lineTo(cx+platW_px/2, platY_px+5); ctx.stroke();
+  ctx.strokeStyle = `rgba(255,25,75,${platOpacity*0.5})`; ctx.lineWidth = 1.5;
+  ctx.shadowColor='rgba(255,25,75,0.5)'; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.moveTo(cx-platW_px/2, platY_px); ctx.lineTo(cx+platW_px/2, platY_px); ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // ── NEON PARTICLES ──
+  if (progress > 10) {
+    const pCount = Math.floor(4 + (progress/100)*14);
+    const pCols = [RED,GREEN,BLUE,CYAN,PURPLE,PINK];
+    for (let i=0; i<pCount; i++) {
+      const angle = t*1.6 + i*(Math.PI*2/pCount);
+      const r = 55 + Math.sin(t*2+i)*25 + (progress/100)*30;
+      const px = cx + Math.cos(angle)*r;
+      const py = cy - 20 + Math.sin(angle*0.7+i)*r*0.5 + floatOffset;
+      const pa = (Math.sin(t*2.5+i)*0.4+0.6)*(progress/100)*0.8;
+      const col = pCols[i%pCols.length];
+      ctx.shadowColor = col(1); ctx.shadowBlur = 5;
+      ctx.fillStyle = col(pa);
+      ctx.beginPath(); ctx.arc(px, py, 1.6, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur=0;
+  }
+
+  // ── STATUS ──
+  const statusEl = document.getElementById('figure-status');
+  if (statusEl) {
+    const statuses = ['SUSPENDED · WAITING','STIRRING · AWAKENING','RISING · MOMENTUM','ASCENDING · IN MOTION','NEAR ZENITH · ALMOST FREE','ASCENDED · ORIGIN ZERO'];
+    statusEl.textContent = statuses[Math.min(Math.floor(progress/20), statuses.length-1)];
+  }
+
+  if (document.getElementById('page-figure').classList.contains('active')) {
+    figureRAF = requestAnimationFrame(() => renderFigurePage());
+  }
+}
+
+// ═══════════════ COORDS ═══════════════
+function updateCoords(){
+  const now=new Date();
+  document.getElementById('coord-date').textContent='DATE · '+now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).toUpperCase();
+  document.getElementById('coord-journal').textContent='JOURNAL ENTRIES · '+S.journal.length;
+  document.getElementById('coord-debt').textContent='DEBT REMAINING · $'+fmt(S.debts.reduce((s,d)=>s+d.balance,0));
+  document.getElementById('coord-goals').textContent='GOALS ACTIVE · '+S.goals.length;
+  document.getElementById('footer-coords').textContent=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+}
+
+// ═══════════════ UTILS ═══════════════
+function fmt(n){
+  if(isNaN(n)||n===null||n===undefined)return'0';
+  if(Math.abs(n)>=10000)return n.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(Math.abs(n)>=1000)return n.toLocaleString('en-US',{maximumFractionDigits:0});
+  return Math.abs(n)<10?parseFloat(n.toFixed(2)).toString():Math.round(n).toString();
+}
+function setErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
+
+// ═══════════════ COLOR MODE TOGGLE ═══════════════
+let colorMode = localStorage.getItem('oz_color_mode') === 'on';
+function applyColorMode() {
+  document.body.classList.toggle('color-mode', colorMode);
+  const track = document.getElementById('mode-track');
+  const label = document.getElementById('mode-label');
+  if (track) track.classList.toggle('on', colorMode);
+  if (label) label.textContent = colorMode ? 'COLOR' : 'MONO';
+}
+function toggleColorMode() {
+  colorMode = !colorMode;
+  localStorage.setItem('oz_color_mode', colorMode ? 'on' : 'off');
+  applyColorMode();
+}
+
+// ═══════════════ INIT ═══════════════
+document.getElementById('footer-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).toUpperCase();
+updateCoords();
+
+// Hide all pages initially — show after setup
+document.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; });
+document.querySelector('.nav-tabs').style.visibility = 'hidden';
+
+const savedFbConfig = localStorage.getItem('oz_fb_config');
+const fbSkipped = localStorage.getItem('oz_fb_skipped');
+
+if (savedFbConfig) {
+  // Auto-reconnect Firebase
+  try {
+    const config = JSON.parse(savedFbConfig);
+    firebase.initializeApp(config);
+    db = firebase.firestore();
+    loadFromFirebase().then(() => launchApp());
+  } catch(e) {
+    launchApp();
+  }
+} else if (fbSkipped) {
+  launchApp();
+} else {
+  // Show Firebase setup
+  document.getElementById('firebase-setup').style.display = 'block';
+  document.querySelector('.nav-tabs').style.visibility = 'hidden';
+  applyColorMode();
+}
+</script>
+</body>
+</html>
